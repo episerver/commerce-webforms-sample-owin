@@ -1,5 +1,6 @@
 ﻿using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.Commerce.Sample.BaseControls;
+using EPiServer.Security;
 using Mediachase.BusinessFoundation.Data.Business;
 using Mediachase.Commerce.Core;
 using Mediachase.Commerce.Customers;
@@ -178,7 +179,7 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.CartCheckout.SharedMo
                     var shipment = Cart.OrderForms[0].Shipments.ToArray().FirstOrDefault()
                         ?? new Shipment()
                         {
-                            CreatorId = SecurityContext.Current.CurrentUserId.ToString(),
+                            CreatorId = PrincipalInfo.CurrentPrincipal.GetContactId().ToString(),
                             Created = DateTime.UtcNow
                         };
 
@@ -244,7 +245,7 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.CartCheckout.SharedMo
             {
                 orderAddress = new OrderAddress()
                 {
-                    ModifierId = SecurityContext.Current.CurrentUserId.ToString(),
+                    ModifierId = PrincipalInfo.CurrentPrincipal.GetContactId().ToString(),
                     Modified = DateTime.Now.ToUniversalTime()
                 };
 
@@ -280,7 +281,7 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.CartCheckout.SharedMo
                     var shipment = Cart.OrderForms[0].Shipments.ToArray().FirstOrDefault() ??
                                    new Shipment()
                                    {
-                                       CreatorId = SecurityContext.Current.CurrentUserId.ToString(),
+                                       CreatorId = PrincipalInfo.CurrentPrincipal.GetContactId().ToString(),
                                        Created = DateTime.UtcNow
                                    };
                     shipment.ShippingAddressId = orderAddress.Name;
@@ -312,7 +313,7 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.CartCheckout.SharedMo
         /// <returns></returns>
         private static void AddCustomerAddress(OrderAddress orderAddress)
         {
-            var contact = CustomerContext.Current.GetContactById(SecurityContext.Current.CurrentUserId);
+            var contact = CustomerContext.Current.GetContactById(PrincipalInfo.CurrentPrincipal.GetContactId());
             if (contact == null)
                 return;
 
@@ -321,14 +322,14 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.CartCheckout.SharedMo
             {
                 address = CustomerAddress.CreateForApplication(AppContext.Current.ApplicationId);
                 address.AddressType = CustomerAddressTypeEnum.Public;
-                address.CreatorId = SecurityContext.Current.CurrentUserId;
+                address.CreatorId = PrincipalInfo.CurrentPrincipal.GetContactId();
                 address.Created = DateTime.Now.ToUniversalTime();
                 address.PrimaryKeyId = BusinessManager.Create(address);
                 if (!contact.ContactAddresses.Any(x => x.PrimaryKeyId == address.PrimaryKeyId))
                     address.ContactId = contact.PrimaryKeyId;
             }
 
-            address.ModifierId = SecurityContext.Current.CurrentUserId;
+            address.ModifierId = PrincipalInfo.CurrentPrincipal.GetContactId();
             address.Modified = DateTime.Now.ToUniversalTime();
             OrderAddress.CopyOrderAddressToCustomerAddress(orderAddress, address);
             BusinessManager.Update(address);

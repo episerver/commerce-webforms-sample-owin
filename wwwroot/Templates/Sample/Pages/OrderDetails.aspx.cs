@@ -4,6 +4,7 @@ using EPiServer.Commerce.Sample.Templates.Sample.Units.AccountManagement;
 using Mediachase.Commerce.Orders;
 using Mediachase.Commerce.Security;
 using System;
+using EPiServer.Security;
 
 namespace EPiServer.Commerce.Sample.Templates.Sample.Pages
 {
@@ -21,7 +22,7 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Pages
                 ? _orderGroupId = 0
                 : _orderGroupId = Int32.Parse(Request.QueryString["po"].ToString(CultureInfo.InvariantCulture));
 
-            _orderDetail = OrderContext.Current.GetPurchaseOrder(SecurityContext.Current.CurrentContactId, _orderGroupId);
+            _orderDetail = OrderContext.Current.GetPurchaseOrder(PrincipalInfo.CurrentPrincipal.GetContactId(), _orderGroupId);
 
             if (_orderDetail == null)
                 return;

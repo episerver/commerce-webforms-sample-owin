@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System.Web.UI;
-using System.Web.UI.WebControls;
-using System.Web.Security;
-using Mediachase.Commerce.Customers;
-using Mediachase.BusinessFoundation.Data;
-using Mediachase.Commerce.Security;
+﻿using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.Commerce.Sample.BaseControls;
-using EPiServer.Commerce.Catalog.ContentTypes;
+using EPiServer.Commerce.Security;
+using EPiServer.Security;
+using EPiServer.ServiceLocation;
+using System;
 
 namespace EPiServer.Commerce.Sample.Templates.Sample.Units.AccountManagement
 {
 	public partial class ChangePassword : RendererControlBase<CatalogContentBase>
 	{
+        private readonly IRegistrar _registrar = ServiceLocator.Current.GetInstance<IRegistrar>();
 
 	    protected void Page_Load(object sender, EventArgs e)
 		{
@@ -23,7 +18,7 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.AccountManagement
 
         protected void savePassword_Click(object sender, EventArgs e)
         {
-            if (!Membership.ValidateUser(SecurityContext.Current.CurrentUser.UserName, CurrentPassword.Text))
+            if (!_registrar.ValidateUser(PrincipalInfo.CurrentPrincipal.Identity.Name, CurrentPassword.Text))
             {
                 passwordError.Text = "Old Password is not valid, please fix and try again";
                 return;
@@ -31,9 +26,8 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.AccountManagement
 
             try
             {
-                SecurityContext.Current.CurrentUser.ChangePassword(CurrentPassword.Text, NewPassword.Text);
+                _registrar.ChangePassword(PrincipalInfo.CurrentPrincipal.Identity.Name, CurrentPassword.Text, NewPassword.Text);
                 PasswordSuccessful.Text = "Password changed successfully!";
-                return;
             }
             catch (Exception ex)
             {

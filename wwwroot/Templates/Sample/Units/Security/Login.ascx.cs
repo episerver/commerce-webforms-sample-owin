@@ -1,19 +1,27 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Web;
-using System.Web.Security;
+using EPiServer.Commerce.Catalog.ContentTypes;
+using EPiServer.Commerce.Sample.BaseControls;
+using EPiServer.Commerce.Security;
 using EPiServer.Framework.Localization;
+using EPiServer.Security;
+using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Core;
 using Mediachase.Commerce.Customers;
 using Mediachase.Commerce.Customers.Profile;
 using Mediachase.Commerce.Security;
-using EPiServer.Commerce.Sample.BaseControls;
-using EPiServer.Commerce.Catalog.ContentTypes;
+using Microsoft.Owin;
+using Microsoft.Owin.Security;
+using System;
+using System.Security.Claims;
+using Microsoft.Owin.Security.Cookies;
+using Microsoft.Owin.Security.WsFederation;
 
 namespace EPiServer.Commerce.Sample.Templates.Sample.Units.Security
 {
     public partial class Login : RendererControlBase<EntryContentBase>
     {
+        private readonly IRegistrar _registrar = ServiceLocator.Current.GetInstance<IRegistrar>();
         private readonly static string[] DefaultUserRoles = { AppRoles.RegisteredRole, AppRoles.EveryoneRole };
 
         /// <summary>
@@ -27,7 +35,7 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.Security
             var password = Password_ExistingId.Value;
             bool remember = !String.IsNullOrEmpty(Request.Form["RememberMe"]);
 
-            if (username == null || !Membership.ValidateUser(username, password))
+            if (username == null || !_registrar.ValidateUser(username, password))
             {
                 SignInFailureText.Text = "Login failed. Please make sure username and password are correct.";
                 return;
@@ -46,7 +54,15 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.Security
                 return;
             }
 
-            CreateAuthenticationCookie(username, AppContext.Current.ApplicationName, remember);
+            var authenticationManager = HttpContext.Current.GetOwinContext().Authentication;
+            authenticationManager.SignOut(WsFederationAuthenticationDefaults.AuthenticationType);
+            var identity = _registrar.CreateIdentity(username);
+            var properties = new AuthenticationProperties()
+            {
+                IsPersistent = remember
+            };
+            _registrar.SignIn(properties, identity);
+            
             Context.RedirectFast(GetUrl(Settings.AccountPage));
         }
 
@@ -66,92 +82,33 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.Security
             string lastName = LastNameId.Value;
             string emailAddress = EmailAddressNewId.Value;
             string password = Password_NewId.Value;
-            MembershipUser user = null;
-
-            MembershipCreateStatus createStatus;
-            user = Membership.CreateUser(emailAddress, password, emailAddress,
-                                         null, null, true, out createStatus);
-            if (createStatus == MembershipCreateStatus.DuplicateUserName)
+            ClaimsPrincipal principal = null;
+            try
             {
-                CreateFailureText.Text = "The supplied email address already exists. Please use a different email address";
-                return;
+                principal = _registrar.CreateUser(emailAddress, password, emailAddress);
             }
-            if (createStatus != MembershipCreateStatus.Success)
+            catch (Exception ex)
             {
-                CreateFailureText.Text = "Error when attempting to create the user: " + createStatus.ToString();
+                CreateFailureText.Text = ex.Message;
                 return;
             }
 
             // Now create an account in the ECF 
-            var customerContact = CustomerContact.CreateInstance(user);
+            var customerContact = CustomerContact.CreateInstance(principal);
             customerContact.FirstName = firstName;
             customerContact.LastName = lastName;
             customerContact.RegistrationSource = String.Format("{0}, {1}", this.Request.Url.Host, SiteContext.Current);
             customerContact["Email"] = emailAddress;
 
             customerContact.SaveChanges();
-            AssignDefaultRolesToUser(user);
-
-            CreateAuthenticationCookie(emailAddress, AppContext.Current.ApplicationName, false);
+            _registrar.SignIn
+            (
+            new AuthenticationProperties()
+            {
+                IsPersistent = false
+            }, principal.Identity as ClaimsIdentity);
 
             Context.RedirectFast(GetUrl(Settings.AccountPage));
-        }
-
-        /// <summary>
-        /// Creates the authentication cookie.
-        /// </summary>
-        /// <param name="username">The username.</param>
-        /// <param name="domain">The domain.</param>
-        /// <param name="remember">if set to <c>true</c> [remember].</param>
-        private static void CreateAuthenticationCookie(string username, string domain, bool remember)
-        {
-            // this line is needed for cookieless authentication
-            FormsAuthentication.SetAuthCookie(username, remember);
-            var expirationDate = FormsAuthentication.GetAuthCookie(username, remember).Expires;
-
-            // the code below does not work for cookieless authentication
-
-            // we need to handle ticket ourselves since we need to save session paremeters as well
-            var ticket = new FormsAuthenticationTicket(2,
-                    username,
-                    DateTime.Now,
-                /*expirationDate, - doesn't work when it's DateTime.MinValue. The date needs to be convertible to FileTime, i.e. >=01/01/1601 */
-                    expirationDate == DateTime.MinValue ? DateTime.Now.Add(FormsAuthentication.Timeout) : expirationDate,
-                    remember,
-                    domain,
-                    FormsAuthentication.FormsCookiePath);
-
-            // Encrypt the ticket.
-            string encTicket = FormsAuthentication.Encrypt(ticket);
-
-            // remove the cookie, if one already exists with the same cookie name
-            if (HttpContext.Current.Response.Cookies[FormsAuthentication.FormsCookieName] != null)
-                HttpContext.Current.Response.Cookies.Remove(FormsAuthentication.FormsCookieName);
-
-            var cookie = new HttpCookie(FormsAuthentication.FormsCookieName, encTicket);
-            cookie.HttpOnly = true;
-
-            cookie.Path = FormsAuthentication.FormsCookiePath;
-            cookie.Secure = FormsAuthentication.RequireSSL;
-            if (FormsAuthentication.CookieDomain != null)
-                cookie.Domain = FormsAuthentication.CookieDomain;
-
-            if (ticket.IsPersistent)
-                cookie.Expires = ticket.Expiration;
-
-            // Create the cookie.
-            HttpContext.Current.Response.Cookies.Set(cookie);
-        }
-
-        private static void AssignDefaultRolesToUser(MembershipUser user)
-        {
-            var roles = DefaultUserRoles.Where(r => !SecurityContext.Current.CheckUserInGlobalRole(user, r));
-            var principal = SecurityContext.Current.GetPrincipalByUser(user);
-            foreach (var roleName in roles)
-            {
-                var globalRoleAssign = new GlobalRoleAssignment(principal, roleName);
-                SecurityContext.Current.CreateUserRoleAssignments(globalRoleAssign);
-            }
         }
     }
 }

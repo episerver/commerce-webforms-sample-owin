@@ -5,17 +5,19 @@ using EPiServer.Business.Commerce;
 using EPiServer.Commerce.Catalog.Linking;
 using EPiServer.Commerce.Routing;
 using EPiServer.Commerce.Sample.Helpers;
+using EPiServer.Commerce.Security;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce;
+using Mediachase.Commerce.Customers;
 using Mediachase.Commerce.Markets;
 using Mediachase.Commerce.Orders.Dto;
 using Mediachase.Commerce.Orders.Managers;
 
 namespace EPiServer.Commerce.Sample.Business.Initialization
 {
-    [ModuleDependency(typeof(EPiServer.Commerce.Initialization.InitializationModule))]
+    [ModuleDependency(typeof(Mediachase.Commerce.Initialization.CommerceInitialization), typeof(EPiServer.Commerce.Initialization.InitializationModule))]
     public class InitializationModule : IConfigurableModule
     {
         public void Initialize(InitializationEngine context)
@@ -47,6 +49,8 @@ namespace EPiServer.Commerce.Sample.Business.Initialization
         public void ConfigureContainer(ServiceConfigurationContext context)
         {
             context.Container.Configure(c => c.For<ICurrentMarket>().Singleton().Use<MarketStorage>());
+            var contact = new CustomerContactRegistrar(new MapUserKey(x => new ConvertStringUserKey()));
+            context.Container.Configure(c => c.For<IRegistrar>().Singleton().Use(contact));
         }
 
         private void AddAssociationGroups(InitializationEngine context)
