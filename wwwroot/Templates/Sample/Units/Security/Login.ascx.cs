@@ -94,7 +94,17 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.Security
             }
 
             // Now create an account in the ECF 
-            var customerContact = CustomerContact.CreateInstance(principal);
+            CustomerContact customerContact;
+            if (_registrar is CustomerContactRegistrar)
+            {
+                customerContact =
+                    CustomerContext.Current.GetContactByUserId(
+                        new MapUserKey(s => new ConvertStringUserKey()).ToTypedString(principal.Identity.Name));
+            }
+            else
+            {
+                customerContact = CustomerContact.CreateInstance(principal);
+            }
             customerContact.FirstName = firstName;
             customerContact.LastName = lastName;
             customerContact.RegistrationSource = String.Format("{0}, {1}", this.Request.Url.Host, SiteContext.Current);
