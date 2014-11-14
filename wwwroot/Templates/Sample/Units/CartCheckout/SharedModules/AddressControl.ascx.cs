@@ -313,8 +313,8 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.CartCheckout.SharedMo
         /// <returns></returns>
         private static void AddCustomerAddress(OrderAddress orderAddress)
         {
-            var contact = CustomerContext.Current.GetContactById(PrincipalInfo.CurrentPrincipal.GetContactId());
-            if (contact == null)
+            var contact = PrincipalInfo.CurrentPrincipal.GetCustomerContact();
+            if (contact == null || !contact.PrimaryKeyId.HasValue)
                 return;
 
             var address = contact.ContactAddresses.FirstOrDefault(x => x.Name.Equals(orderAddress.Name));
@@ -322,14 +322,14 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.CartCheckout.SharedMo
             {
                 address = CustomerAddress.CreateForApplication(AppContext.Current.ApplicationId);
                 address.AddressType = CustomerAddressTypeEnum.Public;
-                address.CreatorId = PrincipalInfo.CurrentPrincipal.GetContactId();
+                address.CreatorId = contact.PrimaryKeyId.Value;
                 address.Created = DateTime.Now.ToUniversalTime();
                 address.PrimaryKeyId = BusinessManager.Create(address);
                 if (!contact.ContactAddresses.Any(x => x.PrimaryKeyId == address.PrimaryKeyId))
                     address.ContactId = contact.PrimaryKeyId;
             }
 
-            address.ModifierId = PrincipalInfo.CurrentPrincipal.GetContactId();
+            address.ModifierId = contact.PrimaryKeyId.Value;
             address.Modified = DateTime.Now.ToUniversalTime();
             OrderAddress.CopyOrderAddressToCustomerAddress(orderAddress, address);
             BusinessManager.Update(address);

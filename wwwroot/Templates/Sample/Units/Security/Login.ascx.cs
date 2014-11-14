@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Security.Principal;
 using System.Web;
 using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.Commerce.Sample.BaseControls;
@@ -41,7 +42,8 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.Security
                 return;
             }
 
-            var profile = SecurityContext.Current.CurrentUserProfile as CustomerProfileWrapper;
+            var httpProfile = Context.Profile;
+            var profile = httpProfile == null ? null : new CustomerProfileWrapper(httpProfile);
             if (profile == null)
             {
                 throw new NullReferenceException("profile");

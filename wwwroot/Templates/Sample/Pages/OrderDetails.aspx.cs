@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using EPiServer.Commerce.Sample.Templates.Sample.PageTypes;
 using EPiServer.Commerce.Sample.Templates.Sample.Units.AccountManagement;
+using EPiServer.Security;
 using Mediachase.Commerce.Orders;
 using Mediachase.Commerce.Security;
 using System;

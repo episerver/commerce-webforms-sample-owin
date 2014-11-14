@@ -43,7 +43,7 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.AccountManagement.Ord
 
                 if (address == null)
                 {
-                    var contact = CustomerContext.Current.GetContactById(PrincipalInfo.CurrentPrincipal.GetContactId());
+                    var contact = PrincipalInfo.CurrentPrincipal.GetCustomerContact();
                     var customerAddresses = CustomerContext.Current.GetAllContactAddresses(contact).ToList();
                     foreach (var customerAddress in customerAddresses)
                         {
