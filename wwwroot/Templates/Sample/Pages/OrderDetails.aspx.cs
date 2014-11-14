@@ -5,7 +5,6 @@ using EPiServer.Security;
 using Mediachase.Commerce.Orders;
 using Mediachase.Commerce.Security;
 using System;
-using EPiServer.Security;
 
 namespace EPiServer.Commerce.Sample.Templates.Sample.Pages
 {
