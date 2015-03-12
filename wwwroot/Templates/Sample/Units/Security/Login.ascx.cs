@@ -56,8 +56,6 @@ namespace EPiServer.Commerce.Sample.Templates.Sample.Units.Security
                 return;
             }
 
-            var authenticationManager = HttpContext.Current.GetOwinContext().Authentication;
-            authenticationManager.SignOut(WsFederationAuthenticationDefaults.AuthenticationType);
             var identity = _registrar.CreateIdentity(username);
             var properties = new AuthenticationProperties()
             {
