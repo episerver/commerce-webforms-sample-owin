@@ -1,4 +1,6 @@
-﻿using EPiServer.Commerce.Catalog.ContentTypes;
+﻿using EPiServer.Commerce.Catalog;
+using EPiServer.Commerce.Catalog.ContentTypes;
+using EPiServer.Commerce.Sample.Helpers;
 using EPiServer.Commerce.Sample.Templates.Sample.PageTypes;
 using EPiServer.Commerce.SpecializedProperties;
 using EPiServer.Core;
@@ -28,6 +30,13 @@ namespace EPiServer.Commerce.Sample.BaseControls
         private ICatalogSystem _catalogSystem;
         private IContentLoader _contentLoader;
         private ICurrentMarket _currentMarket;
+        private AssetUrlResolver _assetUrlResolver;
+
+        protected AssetUrlResolver AssetUrlResolverInstance
+        {
+            get { return _assetUrlResolver ?? Locate.Advanced.GetInstance<AssetUrlResolver>(); }
+            set { _assetUrlResolver = value; }
+        }
 
         protected UrlResolver UrlResolver
         {
@@ -122,7 +131,7 @@ namespace EPiServer.Commerce.Sample.BaseControls
         protected IEnumerable<TCatalogContentBase> ForVisitor<TCatalogContentBase>(Func<IEnumerable<TCatalogContentBase>> action)
             where TCatalogContentBase : CatalogContentBase
         {
-            return FilterForVisitor.Filter(action()).Cast<TCatalogContentBase>();
+            return FilterCatalogContent.Filter(action()).Cast<TCatalogContentBase>();
         }
 
         protected SettingsBlock Settings
@@ -145,22 +154,7 @@ namespace EPiServer.Commerce.Sample.BaseControls
 
         protected string GetMediaUrl(CatalogContentBase content)
         {
-            return GetMediaUrl(MediaList(content).FirstOrDefault());
-        }
-
-        protected IEnumerable<CommerceMedia> MediaList(CatalogContentBase content)
-        {
-            var node = content as NodeContent;
-            if (node != null)
-            {
-                return node.CommerceMediaCollection;
-            }
-            var entry = content as EntryContentBase;
-            if (entry != null)
-            {
-                return node.CommerceMediaCollection;
-            }
-            return Enumerable.Empty<CommerceMedia>();
+            return AssetUrlResolverInstance.GetAssetUrl(content as IAssetContainer);
         }
 
     }

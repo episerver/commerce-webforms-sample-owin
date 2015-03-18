@@ -29,7 +29,7 @@ namespace EPiServer.Commerce.Sample.Helpers
             {
                 if (cart.OrderForms.Count > 0)
                 {
-                    var lineItem = cart.OrderForms[0].LineItems.Cast<LineItem>().SingleOrDefault(l => l.CatalogEntryId == entry.ID);
+                    var lineItem = cart.OrderForms[0].LineItems.Cast<LineItem>().SingleOrDefault(l => l.Code == entry.ID);
                     if (lineItem != null)
                     {
                         quantity += lineItem.Quantity;
@@ -59,8 +59,7 @@ namespace EPiServer.Commerce.Sample.Helpers
             }
 
             // Check Warehouse Inventory status
-            if (warehouseInventory.InventoryStatus == InventoryTrackingStatus.Disabled ||
-                warehouseInventory.InventoryStatus == InventoryTrackingStatus.Ignored)
+            if (warehouseInventory.InventoryStatus == InventoryTrackingStatus.Disabled)
             {
                 errorMessage = "NoError";
                 return true;
